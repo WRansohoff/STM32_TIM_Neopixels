@@ -4,20 +4,31 @@
 // 48MHz for F0 chips, 32MHz for L0, 72MHz for F1 and L4.
 void clock_setup(void) {
   #ifdef VVC_F0
+    /*
+     * Okay, sooo...here's the thing about STM32F0 chips.
+     * They are advertised as having a maximum clock speed of
+     * 48MHz, and the datasheet repeatedly advises you not to
+     * run them faster. But they do have 3 bits of flash
+     * wait states and you can set the PLL to run faster.
+     * So I wouldn't exactly rely on this code, but it
+     * seems to work and 48MHz just isn't fast enough to
+     * run a 'Neopixel' timing interface without hack-y tricks.
+     * So I'm using a hack-y trick to run it at 64MHz.
+     * Caveat emptor.
+     */
     // Reset the Flash 'Access Control Register', and
-    // then set 1 wait-state and enable the prefetch buffer.
+    // then set 2 wait-states and enable the prefetch buffer.
     // (The device header files only show 1 bit for the F0
-    //  line, but the reference manual shows 3...)
+    //  line, but the reference manual shows 3.)
     FLASH->ACR &= ~(0x00000017);
-    FLASH->ACR |=  (FLASH_ACR_LATENCY |
+    //FLASH->ACR |=  (FLASH_ACR_LATENCY |
+    FLASH->ACR |=  (2 << FLASH_ACR_LATENCY_Pos |
                     FLASH_ACR_PRFTBE);
-    // Configure the PLL to (HSI / 2) * 12 = 48MHz.
-    // Use a PLLMUL of 0xA for *12, and keep PLLSRC at 0
-    // to use (HSI / PREDIV) as the core source. HSI = 8MHz.
+    // Configure the PLL to (HSI / 2) * 16 = 64MHz.
     RCC->CFGR  &= ~(RCC_CFGR_PLLMUL |
                     RCC_CFGR_PLLSRC);
     RCC->CFGR  |=  (RCC_CFGR_PLLSRC_HSI_DIV2 |
-                    RCC_CFGR_PLLMUL12);
+                    RCC_CFGR_PLLMUL16);
     // Turn the PLL on and wait for it to be ready.
     RCC->CR    |=  (RCC_CR_PLLON);
     while (!(RCC->CR & RCC_CR_PLLRDY)) {};
@@ -25,8 +36,8 @@ void clock_setup(void) {
     RCC->CFGR  &= ~(RCC_CFGR_SW);
     RCC->CFGR  |=  (RCC_CFGR_SW_PLL);
     while (!(RCC->CFGR & RCC_CFGR_SWS_PLL)) {};
-    // The system clock is now 48MHz.
-    core_clock_hz = 48000000;
+    // The system clock is now 64MHz.
+    core_clock_hz = 64000000;
   #elif VVC_F1
     // Set 2 wait states in flash and enable the prefetch buffer.
     FLASH->ACR &= ~(FLASH_ACR_LATENCY);
@@ -43,6 +54,8 @@ void clock_setup(void) {
     // Set the PLL multiplication factor to 9, for 8*9=72MHz.
     RCC->CFGR  &= ~(RCC_CFGR_PLLMULL);
     RCC->CFGR  |=  (RCC_CFGR_PLLMULL9);
+    // Set the PLL to use the HSE oscillator.
+    RCC->CFGR  |=  (RCC_CFGR_PLLSRC);
     // Enable the PLL.
     RCC->CR    |=  (RCC_CR_PLLON);
     while (!(RCC->CR & RCC_CR_PLLRDY)) {};

@@ -5,10 +5,18 @@ void start_npx_timer(TIM_TypeDef* TIMx) {
   TIMx->CR1 &= ~(TIM_CR1_CEN);
   // Reset the peripheral.
   // TODO: More timers.
+  #if defined(VVC_F1) || defined(VVC_L4)
+  if (TIMx == TIM2) {
+    RCC->APB1RSTR |=  (RCC_APB1RSTR_TIM2RST);
+    RCC->APB1RSTR &= ~(RCC_APB1RSTR_TIM2RST);
+  }
+  #endif
+  #if defined(VVC_F0) || defined(VVC_L4)
   if (TIMx == TIM16) {
     RCC->APB2RSTR |=  (RCC_APB2RSTR_TIM16RST);
     RCC->APB2RSTR &= ~(RCC_APB2RSTR_TIM16RST);
   }
+  #endif
   // Set 'one-pulse' mode.
   //TIMx->CR1  |=  (TIM_CR1_OPM);
   // Set prescaler, auto-reload registers.
@@ -23,8 +31,8 @@ void start_npx_timer(TIM_TypeDef* TIMx) {
 }
 
 inline void next_pulse(TIM_TypeDef* TIMx) {
-  uint16_t tval = 10;
-  if ((grbs[ledt] & (1 << ledb))) { tval = 50; }
+  uint16_t tval = NPX_P1;
+  if (!(grbs[ledt] & (1 << (23-ledb)))) { tval = NPX_P0; }
   TIMx->CR1   |=  (TIM_CR1_CEN);
   GPIOB->BSRR |=  (1 << PB_LED);
   while (TIMx->CNT < tval) {};

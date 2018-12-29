@@ -18,9 +18,11 @@ int main(void) {
   #ifdef VVC_F0
     RCC->AHBENR  |= RCC_AHBENR_GPIOAEN;
     RCC->AHBENR  |= RCC_AHBENR_GPIOBEN;
+    RCC->APB2ENR |= RCC_APB2ENR_TIM16EN;
   #elif  VVC_F1
     RCC->APB2ENR |= RCC_APB2ENR_IOPAEN;
     RCC->APB2ENR |= RCC_APB2ENR_IOPBEN;
+    RCC->APB1ENR |= RCC_APB1ENR_TIM2EN;
   #elif  VVC_L0
     RCC->IOPENR  |= RCC_IOPENR_IOPAEN;
     RCC->IOPENR  |= RCC_IOPENR_IOPBEN;
@@ -45,23 +47,27 @@ int main(void) {
     GPIOB->MODER    |=  (0x1 << (PB_LED * 2));
     GPIOB->OTYPER   &= ~(0x1 << PB_LED);
     GPIOB->OSPEEDR  |=  (0x3 << (PB_LED * 2));
-    GPIOB->ODR      |=  (1 << PB_LED);
+    GPIOB->ODR      &= ~(1 << PB_LED);
   #endif
 
-  // Setup timer interrupt.
-  NVIC_SetPriorityGrouping(0x05);
-  uint32_t exti_pri_encoding = NVIC_EncodePriority(0x05, 0x03, 0x03);
-  NVIC_SetPriority(TIM1_UP_TIM16_IRQn, exti_pri_encoding);
-  NVIC_EnableIRQ(TIM1_UP_TIM16_IRQn);
-
-  start_npx_timer(TIM16);
+  // Setup neopixel timer.
+  start_npx_timer(GP_TIM);
+  int intensity = 0;
+  int di = 1;
   while (1) {
     while (!done) {
-      next_pulse(TIM16);
+      next_pulse(GP_TIM);
     }
     ledb = 0;
     ledt = 0;
     done = 0;
-    delay_cycles(2000000);
+    delay_cycles(100000);
+    for (ledi = 0; ledi < NUM_LEDS; ++ledi) {
+      if (ledi % 3 == 0) { grbs[ledi] = (intensity & 0xFF); }
+      else if (ledi % 3 == 1) { grbs[ledi] = (intensity & 0xFF) << 8; }
+      else if (ledi % 3 == 2) { grbs[ledi] = (intensity & 0xFF) << 16; }
+    }
+    intensity = intensity + di;
+    if (intensity > 63 || intensity < 0) { di = -di; intensity += di; }
   }
 }
