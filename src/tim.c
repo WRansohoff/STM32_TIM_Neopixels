@@ -5,7 +5,7 @@ void start_npx_timer(TIM_TypeDef* TIMx) {
   TIMx->CR1 &= ~(TIM_CR1_CEN);
   // Reset the peripheral.
   // TODO: More timers.
-  #if defined(VVC_F1) || defined(VVC_L4)
+  #if defined(VVC_F1)
   if (TIMx == TIM2) {
     RCC->APB1RSTR |=  (RCC_APB1RSTR_TIM2RST);
     RCC->APB1RSTR &= ~(RCC_APB1RSTR_TIM2RST);
