@@ -14,21 +14,24 @@
 #endif
 
 // Global defines.
-#ifdef VVC_F1
+#ifdef STM32F103xB
   #define PB_LED   (11)
   #define GP_TIM   (TIM2)
   #define NPX_P0   (1)
   #define NPX_P1   (40)
-#elif  VVC_F0
+#elif defined(STM32F030x6) || defined(STM32F031x6) ||\
+      defined(STM32F051x8)
   #define PB_LED   (0)
   #define GP_TIM   (TIM16)
   #define NPX_P0   (1)
   #define NPX_P1   (20)
-#else
+#elif defined(STM32L432xx)
   #define PB_LED   (0)
   #define GP_TIM   (TIM16)
   #define NPX_P0   (10)
   #define NPX_P1   (50)
+#else
+  #error "Unrecognized MCU definition."
 #endif
 #define NUM_LEDS   (3)
 
